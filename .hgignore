@@ -1,0 +1,5 @@
+glob:Debug/
+glob:dbfmanager.ncb
+glob:dbfmanager.suo
+glob:dbfmanager.vcproj.mordor.bcsanches.user
+glob:Release/

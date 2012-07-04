@@ -1,4 +1,7 @@
 dbf2txt
 =======
 
-This tools read and converts a dbf file to a txt file, diferent from a CSV this is simple a data table dump.  It is possible to filter and only output desired columns.
+A small C++ library for reading dbf files. It was designed for converting dbf files to txt and can be easily used for generating files in any format desired.
+Free for commercial use, open source under the ZLib License.
+
+http://github.com/bcsanches/dbf2txt
