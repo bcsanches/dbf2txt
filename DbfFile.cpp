@@ -16,6 +16,7 @@ subject to the following restrictions:
 
 #include "DbfFile.h"
 
+#include <algorithm>
 #include <iostream>
 #include <sstream>
 
@@ -23,18 +24,24 @@ DbfFile_c::DbfFile_c(const char *szFileName):
 	clFile(szFileName, std::ios_base::binary | std::ios_base::in)
 {
 	if(!clFile.good())
-		throw std::exception("Cannot open file");
+		throw std::logic_error("Cannot open file");
 
 	clFile.read(reinterpret_cast<char *>(&stHeader), sizeof(stHeader));
 	size_t sz = sizeof(DbfRecord_s);
 
+	const auto numRecords = stHeader.uNumRecords;
+
 	szRowSize = 0;
 	szLargestFieldSize = 0;
-	for(;;)
+	for(unsigned i = 0;i < numRecords; ++i)
 	{
 		char end;
 		clFile.read(&end, 1);
 		if(end == 0x0D)
+			break;
+
+		//corrupted file? Abort to avoid infinite loop
+		if (i == numRecords)
 			break;
 
 		vecRecords.push_back(DbfRecord_s());
@@ -66,6 +73,13 @@ void DbfFile_c::DumpAll(const char *szDestFileName)
 			clFile.seekg(szRowSize, std::ios_base::cur);
 			continue;
 		}
+
+		if (clFile.fail())
+			break;
+
+		if (deleted == 0x1A) //end-of-file marker
+			break;
+
 		for(size_t i = 0;i < vecRecords.size(); ++i)
 		{
 			DbfRecord_s &record = vecRecords[i];
@@ -120,7 +134,7 @@ void DbfFile_c::DumpFields(const char *szDestFileName, const char **fields, size
 	{
 		std::stringstream stream;
 		stream << "Field not found: " << fields[current];
-		throw std::exception(stream.str().c_str());
+		throw std::logic_error(stream.str().c_str());
 	}
 
 	//Now build the skip table	

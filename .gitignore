@@ -13,3 +13,6 @@
 /dbfmanager.ncb
 /dbfmanager.suo
 /dbfmanager.vcproj.mordor.bcsanches.user
+
+Debug/
+.vs/
