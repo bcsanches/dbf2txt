@@ -62,6 +62,9 @@ void DbfFile::DumpAll(const char *szDestFileName)
 
 	size_t uTotalBytes = 0;
 	size_t uNumRecords = 0;
+
+	const auto recordsSize = m_vecRecords.size();
+
 	while(!m_clFile.eof())
 	{
 		char deleted;
@@ -78,7 +81,7 @@ void DbfFile::DumpAll(const char *szDestFileName)
 		if (deleted == 0x1A) //end-of-file marker
 			break;
 
-		for(size_t i = 0;i < m_vecRecords.size(); ++i)
+		for(size_t i = 0;i < recordsSize; ++i)
 		{
 			DbfRecord &record = m_vecRecords[i];
 									
@@ -89,10 +92,10 @@ void DbfFile::DumpAll(const char *szDestFileName)
 		++uNumRecords;
 		++uTotalBytes;
 
-		out << std::endl;
+		out << '\n';
 	}
 
-	std::cout << "Created " << uNumRecords << " records " << uTotalBytes << " bytes." << std::endl;
+	std::cout << "Created " << uNumRecords << " records, " << uTotalBytes << " bytes.\n";
 }
 
 struct FieldInfo
@@ -191,10 +194,10 @@ void DbfFile::DumpFields(const char *szDestFileName, const char **fields, size_t
 		if(szEndOfRowSeek > 0)
 			m_clFile.seekg(szEndOfRowSeek, std::ios_base::cur);
 
-		out << std::endl;
+		out << '\n';
 		++uNumRecords;
 		++uTotalBytes;
 	}
 
-	std::cout << "Created " << uNumRecords << ", records " << uTotalBytes << " bytes." << std::endl;
+	std::cout << "Created " << uNumRecords << " records, " << uTotalBytes << " bytes.\n";
 }

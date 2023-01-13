@@ -25,7 +25,7 @@ int main(int argc, const char **argv)
 {
 	if(argc < 3)
 	{
-		cout << "Usage: dbfmanager <input.dbf> <output.txt>" << endl;
+		cout << "Usage: dbfmanager <input.dbf> <output.txt>\n";
 
 		return 0;
 	}
