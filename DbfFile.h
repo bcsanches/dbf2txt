@@ -23,57 +23,57 @@ typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned int uint32_t;
 
-struct DbfHeader_s
+struct DbfHeader
 {
-	uint8_t iType;
-	char arcLastUpdate[3];
+	uint8_t m_iType;
+	char m_arcLastUpdate[3];
 
-	uint32_t uNumRecords;
+	uint32_t m_uNumRecords;
 
-	uint16_t uFirstRecordOffset;
-	uint16_t uRecordSize;
+	uint16_t m_uFirstRecordOffset;
+	uint16_t m_uRecordSize;
 
-	char uReserved[15];
-	uint8_t fFlags;
-	uint8_t uCodePageMark;
+	char m_uReserved[15];
+	uint8_t m_fFlags;
+	uint8_t m_uCodePageMark;
 
-	char uReserved2[2];
+	char m_uReserved2[2];
 };
 
 #pragma pack(push)
 #pragma pack(1)
-struct DbfRecord_s
+struct DbfRecord
 {
-	char archName[11];
+	char m_archName[11];
 	char chFieldType;
 
-	uint32_t uDisplacement;
-	uint8_t uLength;
-	uint8_t uDecimalPlaces;
-	uint8_t fFlags;
+	uint32_t m_uDisplacement;
+	uint8_t m_uLength;
+	uint8_t m_uDecimalPlaces;
+	uint8_t m_fFlags;
 
-	uint32_t uNextValue;
-	uint8_t uStepValue;
-	char uReserved[8];
+	uint32_t m_uNextValue;
+	uint8_t m_uStepValue;
+	char m_uReserved[8];
 };
 #pragma pack(pop)
 
-class DbfFile_c
+class DbfFile
 {
 	public:
-		DbfFile_c(const char *szFileName);
+		DbfFile(const char *szFileName);
 
 		void DumpAll(const char *szDestFileName);
 		void DumpFields(const char *szDestFileName, const char **fields, size_t numFields);
 
 	private:
-		std::ifstream clFile;
+		std::ifstream m_clFile;
 
-		DbfHeader_s stHeader;
-		std::vector<DbfRecord_s> vecRecords;
+		DbfHeader m_stHeader;
+		std::vector<DbfRecord> m_vecRecords;
 
-		size_t szRowSize;
-		size_t szLargestFieldSize;
+		size_t m_szRowSize = 0;
+		size_t m_szLargestFieldSize = 0;
 };
 
 

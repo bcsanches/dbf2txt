@@ -32,7 +32,7 @@ int main(int argc, const char **argv)
 
 	try
 	{
-		DbfFile_c file(argv[1]);
+		DbfFile file(argv[1]);
 
 		if(argc == 3)
 			file.DumpAll(argv[2]);

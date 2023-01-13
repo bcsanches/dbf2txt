@@ -20,23 +20,21 @@ subject to the following restrictions:
 #include <iostream>
 #include <sstream>
 
-DbfFile_c::DbfFile_c(const char *szFileName):
-	clFile(szFileName, std::ios_base::binary | std::ios_base::in)
+DbfFile::DbfFile(const char *szFileName):
+	m_clFile(szFileName, std::ios_base::binary | std::ios_base::in)
 {
-	if(!clFile.good())
+	if(!m_clFile.good())
 		throw std::logic_error("Cannot open file");
 
-	clFile.read(reinterpret_cast<char *>(&stHeader), sizeof(stHeader));
-	size_t sz = sizeof(DbfRecord_s);
+	m_clFile.read(reinterpret_cast<char *>(&m_stHeader), sizeof(m_stHeader));
+	size_t sz = sizeof(DbfRecord);
 
-	const auto numRecords = stHeader.uNumRecords;
-
-	szRowSize = 0;
-	szLargestFieldSize = 0;
+	const auto numRecords = m_stHeader.m_uNumRecords;
+	
 	for(unsigned i = 0;i < numRecords; ++i)
 	{
 		char end;
-		clFile.read(&end, 1);
+		m_clFile.read(&end, 1);
 		if(end == 0x0D)
 			break;
 
@@ -44,49 +42,49 @@ DbfFile_c::DbfFile_c(const char *szFileName):
 		if (i == numRecords)
 			break;
 
-		vecRecords.push_back(DbfRecord_s());
-		DbfRecord_s &record = vecRecords.back();
+		m_vecRecords.push_back(DbfRecord());
+		DbfRecord &record = m_vecRecords.back();
 
 		memcpy(&record, &end, 1);
-		clFile.read(reinterpret_cast<char *>(&record)+1, sizeof(DbfRecord_s)-1);
+		m_clFile.read(reinterpret_cast<char *>(&record)+1, sizeof(DbfRecord)-1);
 
-		szRowSize += record.uLength;
-		szLargestFieldSize = std::max(szLargestFieldSize, static_cast<size_t>(record.uLength));
+		m_szRowSize += record.m_uLength;
+		m_szLargestFieldSize = std::max(m_szLargestFieldSize, static_cast<size_t>(record.m_uLength));
 	}
 }
 
-void DbfFile_c::DumpAll(const char *szDestFileName)
+void DbfFile::DumpAll(const char *szDestFileName)
 {
 	std::ofstream out(szDestFileName);
 
 	std::vector<char> vecBuffer;
-	vecBuffer.resize(szLargestFieldSize);
+	vecBuffer.resize(m_szLargestFieldSize);
 
 	size_t uTotalBytes = 0;
 	size_t uNumRecords = 0;
-	while(!clFile.eof())
+	while(!m_clFile.eof())
 	{
 		char deleted;
-		clFile.read(&deleted, 1);		
+		m_clFile.read(&deleted, 1);
 		if(deleted == 0x2A)
 		{
-			clFile.seekg(szRowSize, std::ios_base::cur);
+			m_clFile.seekg(m_szRowSize, std::ios_base::cur);
 			continue;
 		}
 
-		if (clFile.fail())
+		if (m_clFile.fail())
 			break;
 
 		if (deleted == 0x1A) //end-of-file marker
 			break;
 
-		for(size_t i = 0;i < vecRecords.size(); ++i)
+		for(size_t i = 0;i < m_vecRecords.size(); ++i)
 		{
-			DbfRecord_s &record = vecRecords[i];
+			DbfRecord &record = m_vecRecords[i];
 									
-			clFile.read(&vecBuffer[0], record.uLength);
-			out.write(&vecBuffer[0], record.uLength);
-			uTotalBytes += record.uLength;
+			m_clFile.read(&vecBuffer[0], record.m_uLength);
+			out.write(&vecBuffer[0], record.m_uLength);
+			uTotalBytes += record.m_uLength;
 		}
 		++uNumRecords;
 		++uTotalBytes;
@@ -94,38 +92,38 @@ void DbfFile_c::DumpAll(const char *szDestFileName)
 		out << std::endl;
 	}
 
-	std::cout << "Created " << uNumRecords << ", records " << uTotalBytes << " bytes." << std::endl;
+	std::cout << "Created " << uNumRecords << " records " << uTotalBytes << " bytes." << std::endl;
 }
 
-struct FieldInfo_s
+struct FieldInfo
 {
-	const DbfRecord_s &rstRecord;
+	const DbfRecord &rstRecord;
 	size_t szSkipSize;
 
-	FieldInfo_s(const DbfRecord_s &rec):
+	FieldInfo(const DbfRecord &rec):
 		rstRecord(rec),
 		szSkipSize(0)
 	{		
 	}
 
-	FieldInfo_s &operator=(const FieldInfo_s &rhs)
+	FieldInfo &operator=(const FieldInfo &rhs)
 	{
 		return *this;
 	}
 };
 
-void DbfFile_c::DumpFields(const char *szDestFileName, const char **fields, size_t numFields)
+void DbfFile::DumpFields(const char *szDestFileName, const char **fields, size_t numFields)
 {
-	std::vector<FieldInfo_s> vecFields;
+	std::vector<FieldInfo> vecFields;
 	vecFields.reserve(numFields);
 
 	//Build a sorted list (in file fields ordering) with all fields
 	size_t current = 0;
-	for(size_t i = 0;(i < vecRecords.size()) && (current < numFields); ++i)
+	for(size_t i = 0;(i < m_vecRecords.size()) && (current < numFields); ++i)
 	{
-		if(strncmp(vecRecords[i].archName, fields[current], 11) == 0)
+		if(strncmp(m_vecRecords[i].m_archName, fields[current], 11) == 0)
 		{
-			vecFields.push_back(FieldInfo_s(vecRecords[i]));
+			vecFields.emplace_back<FieldInfo>(m_vecRecords[i]);
 			++current;
 		}
 	}
@@ -142,36 +140,36 @@ void DbfFile_c::DumpFields(const char *szDestFileName, const char **fields, size
 	size_t szEndOfRowSeek = 0;
 	for(size_t i = 0;i < numFields; ++i)
 	{
-		for(;current < vecRecords.size(); ++current)
+		for(;current < m_vecRecords.size(); ++current)
 		{
-			if(&vecFields[i].rstRecord == &vecRecords[current])
+			if(&vecFields[i].rstRecord == &m_vecRecords[current])
 			{
 				szEndOfRowSeek += vecFields[i].szSkipSize;
-				szEndOfRowSeek += vecFields[i].rstRecord.uLength;
+				szEndOfRowSeek += vecFields[i].rstRecord.m_uLength;
 				++current;
 				break;
 			}
 
-			vecFields[i].szSkipSize += vecRecords[current].uLength;			
+			vecFields[i].szSkipSize += m_vecRecords[current].m_uLength;
 		}
 	}
-	szEndOfRowSeek = szEndOfRowSeek == szRowSize ? 0 : szRowSize - szEndOfRowSeek;
+	szEndOfRowSeek = szEndOfRowSeek == m_szRowSize ? 0 : m_szRowSize - szEndOfRowSeek;
 
 	//Finally, do the output work
 	std::ofstream out(szDestFileName);
 
 	std::vector<char> vecBuffer;
-	vecBuffer.resize(szLargestFieldSize);
+	vecBuffer.resize(m_szLargestFieldSize);
 
 	size_t uTotalBytes = 0;
 	size_t uNumRecords = 0;
-	while(uNumRecords < stHeader.uNumRecords)
+	while(uNumRecords < m_stHeader.m_uNumRecords)
 	{
 		char deleted;
-		clFile.read(&deleted, 1);		
+		m_clFile.read(&deleted, 1);
 		if(deleted == 0x2A)
 		{
-			clFile.seekg(szRowSize, std::ios_base::cur);
+			m_clFile.seekg(m_szRowSize, std::ios_base::cur);
 			continue;
 		}
 		
@@ -179,19 +177,19 @@ void DbfFile_c::DumpFields(const char *szDestFileName, const char **fields, size
 		{
 			if(vecFields[i].szSkipSize > 0)
 			{				
-				clFile.seekg(vecFields[i].szSkipSize, std::ios_base::cur);
+				m_clFile.seekg(vecFields[i].szSkipSize, std::ios_base::cur);
 			}
 
-			const DbfRecord_s &record = vecFields[i].rstRecord;
+			const DbfRecord &record = vecFields[i].rstRecord;
 									
-			clFile.read(&vecBuffer[0], record.uLength);
-			out.write(&vecBuffer[0], record.uLength);
+			m_clFile.read(&vecBuffer[0], record.m_uLength);
+			out.write(&vecBuffer[0], record.m_uLength);
 
-			uTotalBytes += record.uLength;			
+			uTotalBytes += record.m_uLength;			
 		}
 
 		if(szEndOfRowSeek > 0)
-			clFile.seekg(szEndOfRowSeek, std::ios_base::cur);
+			m_clFile.seekg(szEndOfRowSeek, std::ios_base::cur);
 
 		out << std::endl;
 		++uNumRecords;
